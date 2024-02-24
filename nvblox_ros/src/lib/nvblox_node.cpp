@@ -287,7 +287,7 @@ void NvbloxNode::advertiseTopics()
   static_esdf_pointcloud_publisher_ =
     create_publisher<sensor_msgs::msg::PointCloud2>("~/static_esdf_pointcloud", 1);
   static_esdf_pointcloud_publisher_2 =
-    create_publisher<sensor_msgs::msg::PointCloud2>("~/static_esdf_pointcloud1", 1);
+    create_publisher<sensor_msgs::msg::PointCloud2>("~/static_esdf_pointcloud2", 1);
   static_map_slice_publisher_ =
     create_publisher<nvblox_msgs::msg::DistanceMapSlice>("~/static_map_slice", 1);
   static_map_slice_publisher_2 =
@@ -506,6 +506,9 @@ void NvbloxNode::processEsdf()
 
   sliceAndPublishEsdf(
     "static", static_mapper_,
+    // Slice_height seems to be bound between -0.2 and -0.35. 
+    // Not sure why, because these numbers aren't referenced elsewhere. 
+    // When the height is out of this range, there is no costmap shown in rviz
     static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, 0.4);
   sliceAndPublishEsdf(
     "static2", static_mapper_,
