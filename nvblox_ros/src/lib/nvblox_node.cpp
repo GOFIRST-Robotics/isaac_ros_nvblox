@@ -509,10 +509,10 @@ void NvbloxNode::processEsdf()
     // Slice_height seems to be bound between -0.2 and -0.35. 
     // Not sure why, because these numbers aren't referenced elsewhere. 
     // When the height is out of this range, there is no costmap shown in rviz
-    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, 0.4);
+    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, -.6);
   sliceAndPublishEsdf(
     "static2", static_mapper_,
-    static_esdf_pointcloud_publisher_2, static_map_slice_publisher_2 ,nullptr, -0.2);
+    static_esdf_pointcloud_publisher_2, static_map_slice_publisher_2 ,nullptr, -.6);
   
   if (isUsingDynamicMapper(mapping_type_)) {
     sliceAndPublishEsdf(
