@@ -114,8 +114,8 @@ void NvbloxNode::getParameters()
     declare_parameter<float>("esdf_2d_min_height", MultiMapper::kDefaultEsdf2dMinHeight);
   multi_mapper_params_.esdf_2d_max_height =
     declare_parameter<float>("esdf_2d_max_height", MultiMapper::kDefaultEsdf2dMaxHeight);
-  multi_mapper_params_.esdf_slice_height =
-    declare_parameter<float>("esdf_slice_height", MultiMapper::kDefaultEsdf2dSliceHeight);
+  // multi_mapper_params_.esdf_slice_height =
+  //   declare_parameter<float>("esdf_slice_height", MultiMapper::kDefaultEsdf2dSliceHeight);
   multi_mapper_params_.connected_mask_component_size_threshold =
     declare_parameter<int>(
     "connected_mask_component_size_threshold",
@@ -179,8 +179,8 @@ void NvbloxNode::getParameters()
   clear_outside_radius_rate_hz_ = declare_parameter<float>(
     "clear_outside_radius_rate_hz", clear_outside_radius_rate_hz_);
 
-  this->declare_parameter<float>("esdf_slice_height_one", 0.2);
-  this->declare_parameter<float>("esdf_slice_height_two", -0.6);
+  this->declare_parameter<float>("esdf_slice_height", 0.2);
+  this->declare_parameter<float>("esdf_underground_detection", -0.6);
 }
 
 void NvbloxNode::initializeMultiMapper()
@@ -513,10 +513,10 @@ void NvbloxNode::processEsdf()
     // The height seems to refer to the distance between the designated layer and
     // the height of the ESDF slice we want to take.
     // TODO: find optimal heights for holes
-    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, this->get_parameter("esdf_slice_height_one").as_double());
+    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, this->get_parameter("esdf_slice_height").as_double());
   sliceAndPublishEsdf(
     "static2", static_mapper_,
-    static_esdf_pointcloud_publisher_2, static_map_slice_publisher_2 ,nullptr, this->get_parameter("esdf_slice_height_two").as_double());
+    static_esdf_pointcloud_publisher_2, static_map_slice_publisher_2 ,nullptr, this->get_parameter("esdf_underground_detection").as_double());
   
   if (isUsingDynamicMapper(mapping_type_)) {
     sliceAndPublishEsdf(
