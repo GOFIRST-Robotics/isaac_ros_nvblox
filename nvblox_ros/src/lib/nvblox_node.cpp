@@ -506,9 +506,10 @@ void NvbloxNode::processEsdf()
 
   sliceAndPublishEsdf(
     "static", static_mapper_,
-    // Slice_height seems to be bound between -0.2 and -0.35. 
-    // Not sure why, because these numbers aren't referenced elsewhere. 
-    // When the height is out of this range, there is no costmap shown in rviz
+    // Now that we are using a 3D ESDF, this is no longer bound between -0.2 and -0.35
+    // The height seems to refer to the distance between the designated layer and
+    // the height of the ESDF slice we want to take.
+    // TODO: move this to a config file so it is not hard coded.
     static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, -.6);
   sliceAndPublishEsdf(
     "static2", static_mapper_,
