@@ -179,7 +179,7 @@ void NvbloxNode::getParameters()
   clear_outside_radius_rate_hz_ = declare_parameter<float>(
     "clear_outside_radius_rate_hz", clear_outside_radius_rate_hz_);
 
-  this->declare_parameter<float>("esdf_slice_height", 0.2);
+  this->declare_parameter<float>("esdf_above_ground_slice_height", 0.2);
   this->declare_parameter<float>("esdf_underground_detection", -0.6);
 }
 
@@ -513,7 +513,7 @@ void NvbloxNode::processEsdf()
     // The height seems to refer to the distance between the designated layer and
     // the height of the ESDF slice we want to take.
     // TODO: find optimal heights for holes
-    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, this->get_parameter("esdf_slice_height").as_double());
+    static_esdf_pointcloud_publisher_, static_map_slice_publisher_,nullptr, this->get_parameter("esdf_above_ground_slice_height").as_double());
   sliceAndPublishEsdf(
     "static2", static_mapper_,
     static_esdf_pointcloud_publisher_2, static_map_slice_publisher_2 ,nullptr, this->get_parameter("esdf_underground_detection").as_double());
