@@ -55,6 +55,9 @@ void NvbloxCostmapLayer::onInitialize()
   max_cost_value_ =
     node->declare_parameter<uint8_t>(getFullName("max_cost_value"), max_cost_value_);
 
+  gradient_multiplier_ =
+    node->declare_parameter<float>(getFullName("gradient_multiplier"), gradient_multiplier_);
+
   RCLCPP_INFO_STREAM(
     node->get_logger(),
     "Name: " << name_ << " Topic name: " << nvblox_map_slice_topic
@@ -234,7 +237,7 @@ void NvbloxCostmapLayer::updateCosts(
       // Get approximate total slope of the terrain
       float grad = abs(x1 - x2) + abs(y1 - y2);
       
-      uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * 50 * grad));
+      uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
       
       costmap_array[index] = cost;
     }

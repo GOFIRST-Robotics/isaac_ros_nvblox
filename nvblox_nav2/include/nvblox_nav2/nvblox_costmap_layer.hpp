@@ -66,6 +66,8 @@ private:
   // This should not include any "special" values like 255.
   uint8_t max_cost_value_ = 252;
 
+  float gradient_multiplier_ = 50.0;
+
   // Subscribers
   rclcpp::Subscription<nvblox_msgs::msg::DistanceMapSlice>::SharedPtr
     slice_sub_;
