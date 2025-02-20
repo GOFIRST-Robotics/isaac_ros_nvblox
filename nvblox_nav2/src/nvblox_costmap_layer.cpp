@@ -197,43 +197,22 @@ void NvbloxCostmapLayer::updateCosts(
       */
 
       float x1 = 0.0;
-      bool validX1 = getGridSquareHeight(i + 1, j, &x1);
-
       float x2 = 0.0;
-      bool validX2 = getGridSquareHeight(i - 1, j, &x2);
-
-      if (!validX1 && !validX2) {
-        // If both values around the grid square are empty, set to NO_INFORMATION
-        costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
-        continue;
-      } else if (!validX1) {
-        // Use smaller gradient if edge value
-        // Think smaller kernel at edge of matrix
-        x1 = getGridSquareHeight(i, j, &x1);
-      } else if (!validX2) {
-        x2 = getGridSquareHeight(i, j, &x2);
-      }
-
       float y1 = 0.0;
-      bool validY1 = getGridSquareHeight(i, j + 1, &y1);
-
       float y2 = 0.0;
-      bool validY2 = getGridSquareHeight(i, j - 1, &y2);
-      if (!validY1 && !validY2) {
+
+      if (getGridSquareHeight(i+1, j, &x1) && getGridSquareHeight(i-1, j, &x2)
+        && getGridSquareHeight(i, j+1, &y1) && getGridSquareHeight(i, j-1, &y2)) {
+        float grad = abs(x1 - x2) + abs(y1 - y2);
+      
+        uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
+      
+        costmap_array[index] = cost;
+
+      } else {
         costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
-        continue;
-      } else if (!validY1) {
-        y1 = getGridSquareHeight(i, j, &y1);
-      } else if (!validY2) {
-        y2 = getGridSquareHeight(i, j, &y2);
       }
 
-      // Get approximate total slope of the terrain
-      float grad = abs(x1 - x2) + abs(y1 - y2);
-      
-      uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
-      
-      costmap_array[index] = cost;
     }
   }
 
