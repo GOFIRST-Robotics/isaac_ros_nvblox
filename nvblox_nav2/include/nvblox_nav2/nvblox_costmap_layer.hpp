@@ -57,6 +57,7 @@ public:
 
 private:
   bool lookupInSlice(const Eigen::Vector2f & pos, float * distance);
+  bool getGridSquareHeight(int x, int y, float * height);
 
   // Settings
   bool convert_to_binary_costmap_ = false;
@@ -64,6 +65,8 @@ private:
   float inflation_distance_ = 0.5f;
   // This should not include any "special" values like 255.
   uint8_t max_cost_value_ = 252;
+
+  float gradient_multiplier_ = 50.0;
 
   // Subscribers
   rclcpp::Subscription<nvblox_msgs::msg::DistanceMapSlice>::SharedPtr

@@ -55,6 +55,9 @@ void NvbloxCostmapLayer::onInitialize()
   max_cost_value_ =
     node->declare_parameter<uint8_t>(getFullName("max_cost_value"), max_cost_value_);
 
+  gradient_multiplier_ =
+    node->declare_parameter<float>(getFullName("gradient_multiplier"), gradient_multiplier_);
+
   RCLCPP_INFO_STREAM(
     node->get_logger(),
     "Name: " << name_ << " Topic name: " << nvblox_map_slice_topic
@@ -133,6 +136,24 @@ void NvbloxCostmapLayer::updateBounds(
     *min_y, *max_x, *max_y);
 }
 
+// This method converts the grid square coordinates to world coordinates,
+// and fetches the ESDF value at that point.
+// The function returns a boolean indicating if the value is valid
+// The ESDF value is written to the height pointer.
+bool NvbloxCostmapLayer::getGridSquareHeight(int x, int y, float* height)
+{
+  double world_x, world_y;
+  mapToWorld(x, y, world_x, world_y);
+
+  // Transform the pose from nav2 costmap global frame to the slice frame.
+  Eigen::Vector2f pos_G(world_x, world_y);
+  Eigen::Vector2f pos_S = T_G_S_.inverse() * pos_G;
+
+  // Look up the corresponding cell in our latest slice.
+  bool valid = lookupInSlice(Eigen::Vector2f(pos_S.x(), pos_S.y()), height);
+  return valid;
+}
+
 // The method is called when costmap recalculation is required.
 // It updates the costmap within its window bounds.
 // Inside this method the costmap gradient is generated and is writing directly
@@ -167,50 +188,31 @@ void NvbloxCostmapLayer::updateCosts(
   for (int j = min_j; j < max_j; j++) {
     for (int i = min_i; i < max_i; i++) {
       int index = getIndex(i, j);
+      /* EFFECTIVE KERNEL:
+      [0,  1, 0]
+      [-1, 0, 1]
+      [0, -1, 0]
+      
+      TODO: write function that scales this for larger kernel sizes. 3x3 is tiny
+      */
 
-      // Figure out the world coordinates of this gridcell.
-      double world_x, world_y;
-      mapToWorld(i, j, world_x, world_y);
+      float x1 = 0.0;
+      float x2 = 0.0;
+      float y1 = 0.0;
+      float y2 = 0.0;
 
-      // Transform the pose from nav2 costmap global frame to the slice frame.
-      Eigen::Vector2f pos_G(world_x, world_y);
-      Eigen::Vector2f pos_S = T_G_S_.inverse() * pos_G;
+      if (getGridSquareHeight(i+1, j, &x1) && getGridSquareHeight(i-1, j, &x2)
+        && getGridSquareHeight(i, j+1, &y1) && getGridSquareHeight(i, j-1, &y2)) {
+        float grad = abs(x1 - x2) + abs(y1 - y2);
+      
+        uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
+      
+        costmap_array[index] = cost;
 
-      // Look up the corresponding cell in our latest slice.
-      float distance = 0.0f;
-      bool valid = lookupInSlice(Eigen::Vector2f(pos_S.x(), pos_S.y()), &distance);
-
-      // Convert the distance value to a costmap value if valid.
-      uint8_t cost = nav2_costmap_2d::NO_INFORMATION;
-      if (valid) {
-        if (distance <= 0.0f) {
-          // Inside obstacle. Never go here.
-          cost = nav2_costmap_2d::LETHAL_OBSTACLE;
-        } else {
-          if (convert_to_binary_costmap_) {
-            // If convert_to_binary_costmap is enabled,
-            // we only distinguish between lethal obstacle and free space.
-            cost = nav2_costmap_2d::FREE_SPACE;
-          } else {
-            // If convert_to_binary_costmap is disabled,
-            // we distinguish between lethal obstacle, inflation layer, interpolation layer and
-            // free space.
-            if (distance < inflation_distance_) {
-              cost = nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
-            } else if (distance > max_obstacle_distance_) {
-              cost = nav2_costmap_2d::FREE_SPACE;
-            } else {
-              // Interpolate between inflation layer and free space.
-              cost = static_cast<uint8_t>(
-                max_cost_value_ *
-                (1.0f - std::min<float>(
-                  (distance - inflation_distance_) / max_obstacle_distance_,
-                  1.0f)));
-            }
-          }
-        }
+      } else {
+        costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
       }
-      costmap_array[index] = cost;
+
     }
   }
 
