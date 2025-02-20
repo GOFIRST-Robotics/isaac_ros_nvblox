@@ -138,8 +138,8 @@ void NvbloxCostmapLayer::updateBounds(
 
 // This method converts the grid square coordinates to world coordinates,
 // and fetches the ESDF value at that point.
-// It then returns the ESDF value, if valid
-// If the value is not valid, it returns 1000.
+// The function returns a boolean indicating if the value is valid
+// The ESDF value is written to the height pointer.
 bool NvbloxCostmapLayer::getGridSquareHeight(int x, int y, float* height)
 {
   double world_x, world_y;
@@ -150,21 +150,9 @@ bool NvbloxCostmapLayer::getGridSquareHeight(int x, int y, float* height)
   Eigen::Vector2f pos_S = T_G_S_.inverse() * pos_G;
 
   // Look up the corresponding cell in our latest slice.
-  // float distance = 0.0f
   bool valid = lookupInSlice(Eigen::Vector2f(pos_S.x(), pos_S.y()), height);
-
-  // Check if the value is valid.
-  // if (!valid) {
-  //   *height = 1000.0f;
-  // }
   return valid;
 }
-
-/******************
-This has been edited to use a gradient based costmap instead of a distance based costmap.
-Applying a gradient to the ESDF allows the costmap to account for craters
-updated by Alex Berg
-*******************/
 
 // The method is called when costmap recalculation is required.
 // It updates the costmap within its window bounds.
