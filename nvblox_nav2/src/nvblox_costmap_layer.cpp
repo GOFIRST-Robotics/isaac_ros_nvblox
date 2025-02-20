@@ -140,7 +140,7 @@ void NvbloxCostmapLayer::updateBounds(
 // and fetches the ESDF value at that point.
 // It then returns the ESDF value, if valid
 // If the value is not valid, it returns 1000.
-float NvbloxCostmapLayer::getGridSquareHeight(int x, int y)
+bool NvbloxCostmapLayer::getGridSquareHeight(int x, int y, float* height)
 {
   double world_x, world_y;
   mapToWorld(x, y, world_x, world_y);
@@ -150,15 +150,14 @@ float NvbloxCostmapLayer::getGridSquareHeight(int x, int y)
   Eigen::Vector2f pos_S = T_G_S_.inverse() * pos_G;
 
   // Look up the corresponding cell in our latest slice.
-  float distance = 0.0f;
-  bool valid = lookupInSlice(Eigen::Vector2f(pos_S.x(), pos_S.y()), &distance);
+  // float distance = 0.0f
+  bool valid = lookupInSlice(Eigen::Vector2f(pos_S.x(), pos_S.y()), height);
 
   // Check if the value is valid.
-  if (valid) {
-    return distance;
-  } else {
-    return 1000.0;
-  }
+  // if (!valid) {
+  //   *height = 1000.0f;
+  // }
+  return valid;
 }
 
 /******************
@@ -209,29 +208,36 @@ void NvbloxCostmapLayer::updateCosts(
       TODO: write function that scales this for larger kernel sizes. 3x3 is tiny
       */
 
-      float x1 = getGridSquareHeight(i + 1, j);
-      float x2 = getGridSquareHeight(i - 1, j);
-      if (x1 == 1000.0 && x2 == 1000.0) {
+      float x1 = 0.0;
+      bool validX1 = getGridSquareHeight(i + 1, j, &x1);
+
+      float x2 = 0.0;
+      bool validX2 = getGridSquareHeight(i - 1, j, &x2);
+
+      if (!validX1 && !validX2) {
         // If both values around the grid square are empty, set to NO_INFORMATION
         costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
         continue;
-      } else if (x1 == 1000.0) {
+      } else if (!validX1) {
         // Use smaller gradient if edge value
         // Think smaller kernel at edge of matrix
-        x1 = getGridSquareHeight(i, j);
-      } else if (x2 == 1000.0) {
-        x2 = getGridSquareHeight(i, j);
+        x1 = getGridSquareHeight(i, j, &x1);
+      } else if (!validX2) {
+        x2 = getGridSquareHeight(i, j, &x2);
       }
 
-      float y1 = getGridSquareHeight(i, j + 1);
-      float y2 = getGridSquareHeight(i, j - 1);
-      if (y1 == 1000.0 && y2 == 1000.0) {
+      float y1 = 0.0;
+      bool validY1 = getGridSquareHeight(i, j + 1, &y1);
+
+      float y2 = 0.0;
+      bool validY2 = getGridSquareHeight(i, j - 1, &y2);
+      if (!validY1 && !validY2) {
         costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
         continue;
-      } else if (y1 == 1000.0) {
-        y1 = getGridSquareHeight(i, j);
-      } else if (y2 == 1000.0) {
-        y2 = getGridSquareHeight(i, j);
+      } else if (!validY1) {
+        y1 = getGridSquareHeight(i, j, &y1);
+      } else if (!validY2) {
+        y2 = getGridSquareHeight(i, j, &y2);
       }
 
       // Get approximate total slope of the terrain

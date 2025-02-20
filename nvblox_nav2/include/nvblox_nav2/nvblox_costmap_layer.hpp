@@ -57,7 +57,7 @@ public:
 
 private:
   bool lookupInSlice(const Eigen::Vector2f & pos, float * distance);
-  float getGridSquareHeight(int x, int y);
+  bool getGridSquareHeight(int x, int y, float * height);
 
   // Settings
   bool convert_to_binary_costmap_ = false;
