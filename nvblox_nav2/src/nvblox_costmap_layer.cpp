@@ -58,6 +58,9 @@ void NvbloxCostmapLayer::onInitialize()
   gradient_multiplier_ =
     node->declare_parameter<float>(getFullName("gradient_multiplier"), gradient_multiplier_);
 
+  min_grad_diff_ = 
+    node->declare_parameter<float>(getFullName("min_grad_diff"), min_grad_diff_);
+
   RCLCPP_INFO_STREAM(
     node->get_logger(),
     "Name: " << name_ << " Topic name: " << nvblox_map_slice_topic
@@ -185,6 +188,8 @@ void NvbloxCostmapLayer::updateCosts(
 
   RCLCPP_DEBUG(node->get_logger(), "Size in cells x: %d size in cells y: %d", size_x, size_y);
 
+
+
   for (int j = min_j; j < max_j; j++) {
     for (int i = min_i; i < max_i; i++) {
       int index = getIndex(i, j);
@@ -192,8 +197,6 @@ void NvbloxCostmapLayer::updateCosts(
       [0,  1, 0]
       [-1, 0, 1]
       [0, -1, 0]
-      
-      TODO: write function that scales this for larger kernel sizes. 3x3 is tiny
       */
 
       float x1 = 0.0;
@@ -205,6 +208,14 @@ void NvbloxCostmapLayer::updateCosts(
         && getGridSquareHeight(i, j+1, &y1) && getGridSquareHeight(i, j-1, &y2)) {
         float grad = abs(x1 - x2) + abs(y1 - y2);
       
+        if (grad < min_grad_diff_) {
+          costmap_array[index] = nav2_costmap_2d::FREE_SPACE;
+          continue;
+        } else {
+          costmap_array[index] = nav2_costmap_2d::LETHAL_OBSTACLE;
+          continue;
+        }
+
         uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
       
         costmap_array[index] = cost;

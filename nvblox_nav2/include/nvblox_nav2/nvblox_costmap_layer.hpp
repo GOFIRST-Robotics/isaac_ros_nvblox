@@ -68,6 +68,8 @@ private:
 
   float gradient_multiplier_ = 50.0;
 
+  float min_grad_diff_ = 0.05;
+
   // Subscribers
   rclcpp::Subscription<nvblox_msgs::msg::DistanceMapSlice>::SharedPtr
     slice_sub_;
