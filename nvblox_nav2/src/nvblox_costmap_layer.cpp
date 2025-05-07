@@ -61,6 +61,9 @@ void NvbloxCostmapLayer::onInitialize()
   min_grad_diff_ = 
     node->declare_parameter<float>(getFullName("min_grad_diff"), min_grad_diff_);
 
+  lethal_obstacle_cutoff_ =
+    node->declare_parameter<float>(getFullName("lethal_obstacle_cutoff"), lethal_obstacle_cutoff_);
+
   RCLCPP_INFO_STREAM(
     node->get_logger(),
     "Name: " << name_ << " Topic name: " << nvblox_map_slice_topic
@@ -199,27 +202,39 @@ void NvbloxCostmapLayer::updateCosts(
       [0, -1, 0]
       */
 
-      float x1 = 0.0;
-      float x2 = 0.0;
-      float y1 = 0.0;
-      float y2 = 0.0;
+      float topLeft = 0.0f;
+      float top = 0.0f;
+      float topRight = 0.0f;
 
-      if (getGridSquareHeight(i+1, j, &x1) && getGridSquareHeight(i-1, j, &x2)
-        && getGridSquareHeight(i, j+1, &y1) && getGridSquareHeight(i, j-1, &y2)) {
-        float grad = abs(x1 - x2) + abs(y1 - y2);
+      float left = 0.0f;
+      float right = 0.0f;
+
+      float bottomLeft = 0.0f;
+      float bottom = 0.0f;
+      float bottomRight = 0.0f;
+
+      if (getGridSquareHeight(i - 1, j - 1, &topLeft) &&
+        getGridSquareHeight(i, j + 1, &top) &&
+        getGridSquareHeight(i, j + 2, &topRight) &&
+        getGridSquareHeight(i - 1, j, &left) &&
+        getGridSquareHeight(i + 1, j, &right) &&
+        getGridSquareHeight(i - 1, j + 1, &bottomLeft) &&
+        getGridSquareHeight(i, j + 1, &bottom) &&
+        getGridSquareHeight(i + 1, j + 1, &bottomRight)
+      ) {
+        float grad = 
+          abs((topLeft + 2 * top + topRight) - (bottomLeft + 2 * bottom + bottomRight)) 
+          + abs((topLeft + 2 * left + bottomLeft) - (topRight + 2 * right + bottomRight));
       
         if (grad < min_grad_diff_) {
           costmap_array[index] = nav2_costmap_2d::FREE_SPACE;
           continue;
-        } else {
+        } else  if (grad > lethal_obstacle_cutoff_) {
           costmap_array[index] = nav2_costmap_2d::LETHAL_OBSTACLE;
           continue;
         }
-
-        uint8_t cost = std::min(max_cost_value_, static_cast<uint8_t>(max_cost_value_ * gradient_multiplier_ * grad));
-      
-        costmap_array[index] = cost;
-
+        costmap_array[index] = static_cast<uint8_t>(std::min(250.0f, (max_cost_value_ * gradient_multiplier_ * grad)));
+        
       } else {
         costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
       }

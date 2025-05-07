@@ -70,6 +70,8 @@ private:
 
   float min_grad_diff_ = 0.05;
 
+  float lethal_obstacle_cutoff_ = 0.5f;
+
   // Subscribers
   rclcpp::Subscription<nvblox_msgs::msg::DistanceMapSlice>::SharedPtr
     slice_sub_;
