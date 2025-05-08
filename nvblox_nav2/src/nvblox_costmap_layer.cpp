@@ -18,6 +18,7 @@
 #include "nvblox_nav2/nvblox_costmap_layer.hpp"
 
 #include <string>
+#include <iostream>
 
 #include <nav2_costmap_2d/costmap_math.hpp>
 #include <nav2_costmap_2d/footprint.hpp>
@@ -191,8 +192,6 @@ void NvbloxCostmapLayer::updateCosts(
 
   RCLCPP_DEBUG(node->get_logger(), "Size in cells x: %d size in cells y: %d", size_x, size_y);
 
-
-
   for (int j = min_j; j < max_j; j++) {
     for (int i = min_i; i < max_i; i++) {
       int index = getIndex(i, j);
@@ -223,18 +222,26 @@ void NvbloxCostmapLayer::updateCosts(
         getGridSquareHeight(i + 1, j + 1, &bottomRight)
       ) {
         float grad = 
-          abs((topLeft + 2 * top + topRight) - (bottomLeft + 2 * bottom + bottomRight)) 
-          + abs((topLeft + 2 * left + bottomLeft) - (topRight + 2 * right + bottomRight));
+          pow((topLeft + 2 * top + topRight) - (bottomLeft + 2 * bottom + bottomRight), 2) 
+          + pow((topLeft + 2 * left + bottomLeft) - (topRight + 2 * right + bottomRight), 2);
       
-        if (grad < min_grad_diff_) {
+        bool has_special_neighbor = false;
+        float neighbor_values[8] = {topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight};
+        for (int n = 0; n < 8; n++) {
+          if (neighbor_values[n] == -1.0f) {
+            has_special_neighbor = true;
+            break;
+          }
+        }
+
+        if (has_special_neighbor || grad < min_grad_diff_) {
           costmap_array[index] = nav2_costmap_2d::FREE_SPACE;
           continue;
-        } else  if (grad > lethal_obstacle_cutoff_) {
+        } else if (grad > lethal_obstacle_cutoff_) {
           costmap_array[index] = nav2_costmap_2d::LETHAL_OBSTACLE;
           continue;
         }
-        costmap_array[index] = static_cast<uint8_t>(std::min(250.0f, (max_cost_value_ * gradient_multiplier_ * grad)));
-        
+        costmap_array[index] = static_cast<uint8_t>(std::min(250.0f, (gradient_multiplier_ * grad)));
       } else {
         costmap_array[index] = nav2_costmap_2d::NO_INFORMATION;
       }
@@ -343,7 +350,8 @@ bool NvbloxCostmapLayer::lookupInSlice(const Eigen::Vector2f & pos, float * dist
   if (*distance != slice_->unknown_value) {
     return true;
   }
-  return false;
+  *distance = -1.0f;
+  return true;
 }
 
 }  // namespace nav2
