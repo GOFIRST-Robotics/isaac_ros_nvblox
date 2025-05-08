@@ -190,8 +190,11 @@ void NvbloxCostmapLayer::updateCosts(
   uint8_t * costmap_array = getCharMap();
   unsigned int size_x = getSizeInCellsX(), size_y = getSizeInCellsY();
 
+  float resolution = slice_->resolution;
   RCLCPP_DEBUG(node->get_logger(), "Size in cells x: %d size in cells y: %d", size_x, size_y);
 
+  int midPointX = size_x / 2;
+  int midPointY = size_y / 2;
   for (int j = min_j; j < max_j; j++) {
     for (int i = min_i; i < max_i; i++) {
       int index = getIndex(i, j);
@@ -200,12 +203,20 @@ void NvbloxCostmapLayer::updateCosts(
       [-1, 0, 1]
       [0, -1, 0]
       */
+      // skip points really close to the robot
+      if (abs(i - midPointX) * resolution < 1.2f &&
+        abs(j - midPointY) * resolution < 1.2f)
+      {
+        continue;
+      }
+      
 
       float topLeft = 0.0f;
       float top = 0.0f;
       float topRight = 0.0f;
 
       float left = 0.0f;
+      float center = 0.0f;
       float right = 0.0f;
 
       float bottomLeft = 0.0f;
@@ -216,6 +227,7 @@ void NvbloxCostmapLayer::updateCosts(
         getGridSquareHeight(i, j + 1, &top) &&
         getGridSquareHeight(i, j + 2, &topRight) &&
         getGridSquareHeight(i - 1, j, &left) &&
+        getGridSquareHeight(i, j, &center) &&
         getGridSquareHeight(i + 1, j, &right) &&
         getGridSquareHeight(i - 1, j + 1, &bottomLeft) &&
         getGridSquareHeight(i, j + 1, &bottom) &&
@@ -225,9 +237,13 @@ void NvbloxCostmapLayer::updateCosts(
           pow((topLeft + 2 * top + topRight) - (bottomLeft + 2 * bottom + bottomRight), 2) 
           + pow((topLeft + 2 * left + bottomLeft) - (topRight + 2 * right + bottomRight), 2);
       
+        // float grad = std::abs(
+        //   (topLeft + 2 * top + topRight) - (bottomLeft + 2 * bottom + bottomRight)) +
+        //   std::abs((topLeft + 2 * left + bottomLeft) - (topRight + 2 * right + bottomRight));
+
         bool has_special_neighbor = false;
-        float neighbor_values[8] = {topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight};
-        for (int n = 0; n < 8; n++) {
+        float neighbor_values[9] = {topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight, center};
+        for (int n = 0; n < 9; n++) {
           if (neighbor_values[n] == -1.0f) {
             has_special_neighbor = true;
             break;
